@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "memoria": {
+      "command": "${user_config.python}",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/run.py", "serve"]
+    }
+  }
+}

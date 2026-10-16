@@ -135,3 +135,41 @@ def test_portuguese_plural_and_inflection(store):
     store.save("Exigir paginação em listagens de reclamações.", project="p", id="pag")
     assert store.recall("listagem", project="p")[0].id == "pag"
     assert store.recall("reclamacao", project="p")[0].id == "pag"
+
+
+def test_mcp_protocol(tmp_path, monkeypatch):
+    monkeypatch.setenv("CORTEXLITE_PATH", str(tmp_path / "s.db"))
+    monkeypatch.setenv("CORTEXLITE_PROJECT", "radar")
+    from cortexlite.server import handle
+
+    init = handle({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}})
+    assert init["result"]["protocolVersion"] == "2025-06-18" and "tools" in init["result"]["capabilities"]
+    assert handle({"jsonrpc": "2.0", "method": "notifications/initialized"}) is None
+    names = [t["name"] for t in handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})["result"]["tools"]]
+    assert {"recall", "memory_save", "memory_get"} <= set(names)
+
+    def call(name, args):
+        r = handle({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": name, "arguments": args}})["result"]
+        return r["isError"], json.loads(r["content"][0]["text"])
+
+    err, saved = call("memory_save", {"content": "Rate limit 60 req/min", "kind": "achado"})
+    assert not err and saved["saved"]["project"] == "radar"
+    err, found = call("recall", {"query": "rate limit"})
+    assert not err and found["results"][0]["id"] == saved["saved"]["id"]
+    assert call("memory_save", {"content": "x", "kind": "nada"})[0]
+    assert call("memory_get", {})[0]
+    assert "error" in handle({"jsonrpc": "2.0", "id": 4, "method": "resources/list"})
+
+
+def test_mcp_stdio_roundtrip(tmp_path):
+    env = {**os.environ, "CORTEXLITE_PATH": str(tmp_path / "io.db")}
+    msgs = [
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+        {"jsonrpc": "2.0", "method": "notifications/initialized"},
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "memory_save", "arguments": {"content": "Decisão: usar ação assíncrona", "kind": "decisao"}}},
+    ]
+    stdin = "".join(json.dumps(m, ensure_ascii=False) + "\n" for m in msgs).encode("utf-8")
+    r = subprocess.run([sys.executable, str(ROOT / "run.py"), "serve"], input=stdin, capture_output=True, env=env, timeout=20)
+    lines = r.stdout.decode("utf-8").splitlines()
+    assert len(lines) == 2 and b"\r\n" not in r.stdout
+    assert "assíncrona" in json.loads(json.loads(lines[1])["result"]["content"][0]["text"])["saved"]["preview"]

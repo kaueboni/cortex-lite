@@ -1,0 +1,19 @@
+{
+  "name": "cortex-lite",
+  "displayName": "cortex-lite",
+  "version": "0.2.0",
+  "description": "Memória persistente entre sessões e agentes: decisões, lições e achados num SQLite local com busca full-text. Python puro, sem dependências.",
+  "author": { "name": "Kaue Bonilha" },
+  "repository": "https://github.com/kaueboni/cortex-lite",
+  "license": "MIT",
+  "keywords": ["memory", "memoria", "sdd", "mcp", "sqlite"],
+  "userConfig": {
+    "python": {
+      "type": "string",
+      "title": "Comando do Python",
+      "description": "Executável do Python 3.10+. Windows: py (ou o caminho completo do python.exe). macOS/Linux: python3.",
+      "default": "py",
+      "required": true
+    }
+  }
+}

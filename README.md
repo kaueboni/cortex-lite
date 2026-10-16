@@ -1,60 +1,81 @@
 # cortex-lite
 
-Memória persistente para os agentes do Claude Code, entre sessões e entre agentes.
+Plugin do Claude Code que dá memória persistente aos seus agentes, entre sessões e entre agentes.
 Inspirado no [CortexDB](https://github.com/liliang-cn/cortexdb) (MIT), reduzido ao que um framework
-SDD precisa: lembrar decisões, lições e achados, sem binário, sem servidor e sem nada saindo da máquina.
+SDD precisa: lembrar decisões, lições e achados, sem binário, sem servidor, sem `pip install` e sem
+nada saindo da máquina.
 
-- **Um arquivo SQLite** (`%USERPROFILE%\.cortexlite\memoria.db`), com busca full-text FTS5/BM25
-  que ignora acentos.
-- **Python puro.** Os hooks e a CLI usam só a biblioteca padrão. O servidor MCP precisa do pacote `mcp`.
-- **Por projeto:** o projeto é o nome do repositório git. Memórias globais (como preferências)
-  valem em todos os projetos.
+- **Só Python 3.10+.** Tudo usa a biblioteca padrão, inclusive o servidor MCP.
+- **Um arquivo SQLite** (`~/.cortexlite/memoria.db`) com busca full-text (FTS5/BM25) que ignora
+  acentos e entende plural ("listagem" acha "listagens").
+- **Por projeto:** o projeto é o nome do repositório git. Memórias globais (como preferências) valem
+  em todos os projetos.
 - **Histórico sem ruído:** uma decisão substituída fica guardada, mas sai do recall.
 - **Revisável:** `export` gera um markdown para versionar e revisar em PR.
 
-## Instalação no Windows
+## Instalação
 
-Pré-requisito: Python 3.10+ (`py --version`).
+Uma vez por máquina; vale para todos os projetos.
 
-1. Copie a pasta `cortex-lite` para `C:\ferramentas\cortex-lite`. Se usar outro caminho, troque-o nos
-   comandos abaixo e use barras normais (`/`).
-2. Instale o SDK MCP:
-   ```powershell
-   py -m pip install --user "mcp>=1.2"
-   ```
-   Se a empresa tiver um espelho do PyPI, acrescente `--index-url <url-do-espelho>`.
-3. Verifique a instalação:
-   ```powershell
-   py C:/ferramentas/cortex-lite/run.py doctor
-   ```
-   Todas as linhas devem sair `[ok]`.
-4. Registre o servidor MCP para todos os projetos:
-   ```powershell
-   claude mcp add cortex-lite --scope user -- py C:/ferramentas/cortex-lite/run.py serve
-   ```
-5. Hooks e permissões: copie os blocos `hooks` e `permissions` de
-   [`settings.example.json`](settings.example.json) para `%USERPROFILE%\.claude\settings.json`,
-   juntando com o que já existir lá.
-6. Reinicie o Claude Code e teste:
-   ```powershell
-   py C:/ferramentas/cortex-lite/run.py save "Teste de memória do cortex-lite" --kind fato
-   ```
-   Numa nova sessão, o início deve listar essa memória. Depois disso, apague o teste com
-   `memory_delete`.
+**Do GitHub** (o repositório é privado, então o git da máquina precisa ter acesso a ele):
 
-Se `py` não for encontrado pelos hooks (eles rodam pelo Git Bash), troque `py` pelo caminho
-completo, por exemplo `C:/Users/<você>/AppData/Local/Programs/Python/Python312/python.exe`.
+```
+/plugin marketplace add kaueboni/cortex-lite
+/plugin install cortex-lite@cortex-lite
+```
 
-## O que acontece em cada sessão
+**De uma pasta local**, por exemplo quando a rede bloqueia o GitHub: copie ou clone o repositório
+para `C:\ferramentas\cortex-lite` e rode
 
-| Momento | O que o cortex-lite faz |
+```
+/plugin marketplace add C:/ferramentas/cortex-lite
+/plugin install cortex-lite@cortex-lite
+```
+
+Instalado de uma pasta local, o plugin roda direto dela: para atualizar, basta um `git pull` ali e
+`/reload-plugins`.
+
+Na instalação, o Claude Code pergunta o **comando do Python**:
+
+| Sistema | Valor |
 | --- | --- |
-| Início da sessão | Injeta um índice com uma linha por memória vigente do projeto (até 20). |
-| Cada prompt | Busca memórias que casam com o prompt e injeta até ~1200 caracteres. Prompts como "ok" e "segue" não disparam nada, e memórias que casam com só uma palavra solta são descartadas. |
-| Quando o agente decide | Usa as ferramentas `recall`, `memory_save`, `memory_get`, `memory_list`, `memory_supersede` e `memory_delete`. |
+| Windows | `py` (padrão) ou o caminho completo, como `C:/Users/<você>/AppData/Local/Programs/Python/Python312/python.exe` |
+| macOS / Linux | `python3` |
 
-Não há captura automática: só entra no banco o que um agente salvar explicitamente. Assim nenhuma
-memória errada é gravada sem alguém ter decidido isso.
+Para mudar depois: `/plugin configure cortex-lite@cortex-lite`.
+
+Para conferir o Python e o SQLite da máquina:
+
+```
+py C:/ferramentas/cortex-lite/run.py doctor
+```
+
+### Liberar as ferramentas sem confirmação (opcional)
+
+Em `%USERPROFILE%\.claude\settings.json`:
+
+```json
+"permissions": {
+  "allow": [
+    "mcp__plugin_cortex-lite_memoria__recall",
+    "mcp__plugin_cortex-lite_memoria__memory_get",
+    "mcp__plugin_cortex-lite_memoria__memory_list",
+    "mcp__plugin_cortex-lite_memoria__memory_save"
+  ]
+}
+```
+
+## O que o plugin instala
+
+| Peça | O que faz |
+| --- | --- |
+| Hook `SessionStart` | Injeta um índice com uma linha por memória vigente do projeto (até 20). |
+| Hook `UserPromptSubmit` | Busca memórias que casam com o prompt e injeta até ~1200 caracteres. Prompts como "ok" e "segue" não disparam nada, e memórias que casam com uma única palavra solta são descartadas. |
+| Servidor MCP `memoria` | Ferramentas `recall`, `memory_save`, `memory_get`, `memory_list`, `memory_supersede` e `memory_delete`. |
+| Skill `memoria` | Ensina os agentes quando consultar, o que gravar e com qual `kind`, por papel (tech-lead, developer, auditor, researcher). |
+
+Não há captura automática: só entra no banco o que um agente salvar explicitamente. Para regras
+mais rígidas por agente, veja [`AGENTES.md`](AGENTES.md).
 
 ## Tipos de memória (`kind`)
 
@@ -62,9 +83,10 @@ memória errada é gravada sem alguém ter decidido isso.
 
 ## CLI
 
-```powershell
+```
 py run.py search "rate limit consumidor"     # o que o recall veria
 py run.py list                                # memórias vigentes do projeto atual
+py run.py save "texto" --kind decisao --title "..."
 py run.py export > docs/MEMORIA.md            # markdown para revisar em PR
 py run.py stats                               # contagem por projeto
 ```
@@ -74,7 +96,7 @@ py run.py stats                               # contagem por projeto
 | Variável | Padrão | Uso |
 | --- | --- | --- |
 | `CORTEXLITE_PATH` | `~/.cortexlite/memoria.db` | Arquivo do banco. |
-| `CORTEXLITE_PROJECT` | nome do repo git | Força o nome do projeto. |
+| `CORTEXLITE_PROJECT` | nome do repo git | Força o nome do projeto (útil se dois repos têm o mesmo nome). |
 | `CORTEXLITE_RECALL_BUDGET` | `1200` | Máximo de caracteres injetados por prompt. |
 | `CORTEXLITE_RECALL_TOP_K` | `4` | Máximo de memórias injetadas por prompt. |
 | `CORTEXLITE_SESSION_MAX` | `20` | Itens no índice do início da sessão. |
@@ -88,7 +110,7 @@ markdown no repositório. A memória guarda o *porquê*: decisões, lições e a
 
 ## Testes
 
-```powershell
+```
 py -m pip install --user pytest
 py -m pytest tests
 ```

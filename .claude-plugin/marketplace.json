@@ -1,0 +1,14 @@
+{
+  "name": "cortex-lite",
+  "description": "Memória persistente para os agentes do Claude Code (cortex-lite).",
+  "owner": {
+    "name": "Kaue Bonilha"
+  },
+  "plugins": [
+    {
+      "name": "cortex-lite",
+      "source": "./",
+      "description": "Memória persistente entre sessões e agentes para o Claude Code."
+    }
+  ]
+}

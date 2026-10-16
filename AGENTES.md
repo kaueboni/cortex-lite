@@ -1,7 +1,9 @@
 # Integração com o framework SDD
 
-Os trechos abaixo vão no prompt de cada agente (`.claude/agents/<agente>.md`) e nos comandos
-(`/spec`, `/plan`, `/build`, `/review`). A regra geral: **quem decide grava, quem executa consulta.**
+O plugin já traz a skill `memoria`, que ensina qualquer agente a usar a memória. Os trechos abaixo
+são opcionais: cole-os no prompt de cada agente (`.claude/agents/<agente>.md` ou `~/.claude/agents`)
+quando quiser que o comportamento seja obrigatório, e não só sugerido. A regra geral: **quem decide
+grava, quem executa consulta.**
 
 ## Regra comum (todos os agentes)
 

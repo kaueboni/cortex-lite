@@ -19,7 +19,7 @@ import sys
 
 from .store import GLOBAL, KINDS, Store, detect_project, query_terms
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 
 def _utf8_stdio() -> None:
@@ -67,7 +67,7 @@ def hook_session_start(data: dict) -> None:
         return
     lines = [
         f"Memória do projeto '{project}' (cortex-lite): {len(mems)} itens vigentes, mais recentes primeiro.",
-        "Use a ferramenta memory_get com os ids para ler o conteúdo completo quando for relevante.",
+        "O conteúdo completo de cada item está disponível pela ferramenta memory_get, pelo id.",
     ]
     for m in mems:
         scope = " [global]" if m.project == GLOBAL else ""
@@ -104,7 +104,7 @@ def hook_recall(data: dict) -> None:
     if not hits:
         return
     budget = _env_int("CORTEXLITE_RECALL_BUDGET", 1200)
-    lines = ["Memórias possivelmente relevantes (cortex-lite). Confira antes de seguir; memory_get traz o texto completo:"]
+    lines = ["Memórias do cortex-lite que casam com este prompt (o texto completo está disponível via memory_get):"]
     used = len(lines[0])
     for m in hits:
         body = " ".join(m.content.split())
@@ -173,12 +173,13 @@ def cmd_doctor(_args) -> int:
     check("banco", db)
     check("projeto detectado", lambda: detect_project())
 
-    def sdk():
-        from . import server  # noqa: F401
+    def mcp():
+        from .server import handle
 
-        return "SDK mcp importado, servidor pronto"
+        r = handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+        return f"servidor MCP pronto ({len(r['result']['tools'])} ferramentas, sem dependências)"
 
-    check("mcp", sdk)
+    check("mcp", mcp)
     return 0 if ok else 1
 
 

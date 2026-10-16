@@ -1,12 +1,4 @@
 {
-  "permissions": {
-    "allow": [
-      "mcp__cortex-lite__recall",
-      "mcp__cortex-lite__memory_get",
-      "mcp__cortex-lite__memory_list",
-      "mcp__cortex-lite__memory_save"
-    ]
-  },
   "hooks": {
     "SessionStart": [
       {
@@ -14,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py C:/ferramentas/cortex-lite/run.py hook session-start",
+            "command": "${user_config.python}",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/run.py", "hook", "session-start"],
             "timeout": 10
           }
         ]
@@ -25,7 +18,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py C:/ferramentas/cortex-lite/run.py hook recall",
+            "command": "${user_config.python}",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/run.py", "hook", "recall"],
             "timeout": 10
           }
         ]
