@@ -8,6 +8,17 @@ o nome do servidor (`memoria`), os `kind` (`decisao`, `licao`, `achado`, `fato`,
 `pendencia`) e os perfis de uso (leitor, pesquisador, decisor, executor, revisor). Renomear ou
 remover qualquer um deles é mudança incompatível: exige versão maior e uma nota de migração aqui.
 
+## [0.3.1] - 2026-10-16
+
+### Fixed
+- Windows: abrir o banco pela primeira vez com vários processos ao mesmo tempo podia falhar com
+  `database is locked`; a inicialização agora repete a tentativa.
+- Windows: o `export` saía com fim de linha CRLF; agora sai sempre LF, o que evita diff falso em PR.
+
+### Added
+- `.gitattributes` e `.editorconfig` (LF e UTF-8), para o checkout com `autocrlf=true` não alterar os arquivos.
+- Requisito documentado: no Windows, instale o Git for Windows (Git Bash) e use `py` no campo Python.
+
 ## [0.3.0] - 2026-10-16
 
 ### Changed

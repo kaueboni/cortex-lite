@@ -44,6 +44,8 @@ Na instalação, o Claude Code pergunta o **comando do Python**:
 
 Para mudar depois: `/plugin configure cortex-lite@cortex-lite`.
 
+**Windows:** instale o [Git for Windows](https://git-scm.com/download/win) (Git Bash); o Claude Code o usa para rodar comandos. Para gravar o `export` redirecionado no PowerShell, prefira `py run.py export | Out-File MEMORIA.md -Encoding utf8`.
+
 Passo a passo completo, verificação e problemas comuns: [`INSTALACAO.md`](INSTALACAO.md).
 
 Para conferir o Python e o SQLite da máquina:
