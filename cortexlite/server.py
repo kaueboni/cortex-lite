@@ -15,7 +15,7 @@ from typing import Any, Callable
 from .store import GLOBAL, KINDS, Store, detect_project
 
 SERVER_NAME = "cortex-lite"
-SERVER_VERSION = "0.3.0"
+SERVER_VERSION = "0.3.1"
 DEFAULT_PROTOCOL = "2025-06-18"
 
 INSTRUCTIONS = f"""

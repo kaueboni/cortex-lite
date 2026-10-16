@@ -1,7 +1,7 @@
 {
   "name": "cortex-lite",
   "displayName": "cortex-lite",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Memória persistente entre sessões e agentes: decisões, lições e achados num SQLite local com busca full-text. Python puro, sem dependências.",
   "author": { "name": "Kaue Bonilha" },
   "repository": "https://github.com/kaueboni/cortex-lite",

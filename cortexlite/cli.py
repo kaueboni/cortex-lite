@@ -19,14 +19,15 @@ import sys
 
 from .store import GLOBAL, KINDS, Store, detect_project, query_terms
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 
 
 def _utf8_stdio() -> None:
-    # No Windows o console padrão é cp1252; acentos quebrariam a saída dos hooks.
+    # No Windows o console padrão é cp1252 e a quebra de linha vira CRLF; sem isso os acentos
+    # e o export (versionado em PR) sairiam errados.
     for stream in (sys.stdout, sys.stderr):
         try:
-            stream.reconfigure(encoding="utf-8")
+            stream.reconfigure(encoding="utf-8", newline="\n")
         except Exception:
             pass
 

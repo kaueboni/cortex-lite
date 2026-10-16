@@ -9,6 +9,7 @@ import hashlib
 import os
 import re
 import sqlite3
+import time
 import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -192,10 +193,22 @@ class Store:
             self.path.parent.mkdir(parents=True, exist_ok=True)
         self.db = sqlite3.connect(str(self.path), timeout=10)
         self.db.row_factory = sqlite3.Row
-        # WAL: várias sessões do Claude Code podem usar o mesmo arquivo ao mesmo tempo.
-        self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA busy_timeout=5000")
-        self.db.executescript(SCHEMA)
+        self._init_schema()
+
+    def _init_schema(self) -> None:
+        # WAL: várias sessões do Claude Code podem usar o mesmo arquivo ao mesmo tempo.
+        # Na criação do banco, vários processos disputam a troca de modo; no Windows isso
+        # chega a lançar "database is locked" mesmo com timeout, então repete a tentativa.
+        for attempt in range(10):
+            try:
+                self.db.execute("PRAGMA journal_mode=WAL")
+                self.db.executescript(SCHEMA)
+                return
+            except sqlite3.OperationalError as exc:
+                if "locked" not in str(exc) or attempt == 9:
+                    raise
+                time.sleep(0.05 * (attempt + 1))
 
     def close(self) -> None:
         self.db.close()
