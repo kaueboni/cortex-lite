@@ -44,6 +44,8 @@ Na instalação, o Claude Code pergunta o **comando do Python**:
 
 Para mudar depois: `/plugin configure cortex-lite@cortex-lite`.
 
+Passo a passo completo, verificação e problemas comuns: [`INSTALACAO.md`](INSTALACAO.md).
+
 Para conferir o Python e o SQLite da máquina:
 
 ```
