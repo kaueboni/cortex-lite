@@ -19,7 +19,7 @@ import sys
 
 from .store import GLOBAL, KINDS, Store, detect_project, query_terms
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
 
 def _utf8_stdio() -> None:

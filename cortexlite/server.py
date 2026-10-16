@@ -15,12 +15,13 @@ from typing import Any, Callable
 from .store import GLOBAL, KINDS, Store, detect_project
 
 SERVER_NAME = "cortex-lite"
-SERVER_VERSION = "0.2.0"
+SERVER_VERSION = "0.3.0"
 DEFAULT_PROTOCOL = "2025-06-18"
 
 INSTRUCTIONS = f"""
-Memória persistente entre sessões e entre agentes (tech-lead, developer, auditor, researcher).
+Memória persistente entre sessões e entre agentes.
 Cada memória pertence a um projeto (detectado pelo repositório git) ou é global.
+Regra geral: quem decide grava, quem executa consulta.
 
 Quando usar:
 - Antes de planejar, revisar ou pesquisar: `recall` com 2-6 palavras-chave do assunto.
@@ -110,7 +111,7 @@ TOOLS: dict[str, tuple[Callable[[Store, dict], dict], str, dict]] = {
                 "content": {"type": "string", "description": "Fato autocontido (1-5 frases), com o porquê."},
                 "kind": {**_KIND, "default": "fato"},
                 "title": {"type": "string", "description": "Resumo de uma linha; ajuda muito na busca."},
-                "agent": {"type": "string", "description": "Quem registrou: tech-lead, developer, auditor, researcher."},
+                "agent": {"type": "string", "description": "Quem registrou: o nome ou papel do agente (livre)."},
                 "tags": {"type": "array", "items": _STR},
                 "id": {"type": "string", "description": "Id existente para atualizar aquela memória."},
                 "supersedes": {"type": "array", "items": _STR, "description": "Ids que esta memória torna obsoletos."},

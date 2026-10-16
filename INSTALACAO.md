@@ -12,7 +12,7 @@ sua própria memória, separada pelo nome do repositório git.
 | --- | --- | --- |
 | Claude Code | `claude --version` | Qualquer versão recente com suporte a plugins. |
 | Python 3.10+ | `py --version` (Windows) ou `python3 --version` | É a única dependência. Nada de `pip install`. |
-| Acesso ao repositório | `git ls-remote https://github.com/kaueboni/cortex-lite` | Só para instalar direto do GitHub. O repositório é privado. |
+| Acesso ao repositório | `git ls-remote https://github.com/kaueboni/cortex-lite` | Só para instalar direto do GitHub. Se o repositório estiver privado, o git precisa ter acesso. |
 
 ---
 
@@ -35,6 +35,8 @@ Dentro do Claude Code:
    ```powershell
    git clone https://github.com/kaueboni/cortex-lite C:\ferramentas\cortex-lite
    ```
+   No macOS / Linux, por exemplo: `git clone https://github.com/kaueboni/cortex-lite ~/ferramentas/cortex-lite`
+   (e use `/plugin marketplace add ~/ferramentas/cortex-lite` no passo 2).
    Sem acesso ao git, baixe o ZIP do repositório e extraia na mesma pasta.
 2. Dentro do Claude Code:
    ```
@@ -73,6 +75,7 @@ claude plugin install cortex-lite@cortex-lite --config python=py
    ```powershell
    py C:/ferramentas/cortex-lite/run.py doctor
    ```
+   No macOS / Linux: `python3 ~/ferramentas/cortex-lite/run.py doctor`.
    Todas as linhas devem sair `[ok]`. Na opção A, rode o mesmo comando a partir de um clone
    qualquer do repositório.
 2. **Plugin carregado:** em `/plugin`, o `cortex-lite` deve aparecer como habilitado e sem erros.
@@ -103,7 +106,8 @@ Sem isto, o Claude Code pede permissão a cada consulta ou gravação. Acrescent
 ```
 
 `memory_supersede` e `memory_delete` ficam de fora de propósito: alteram o histórico e merecem
-confirmação.
+confirmação. Se um fluxo seu roda agentes sem supervisão e algum deles tem o perfil decisor ou
+revisor, libere também `mcp__plugin_cortex-lite_memoria__memory_supersede`. `memory_delete` nunca.
 
 ---
 
@@ -133,17 +137,23 @@ Para **desligar** o plugin num projeto específico, use `"cortex-lite@cortex-lit
 
 ---
 
-## 7. Integrar ao framework SDD
+## 7. Integrar a agentes, fluxos e outros plugins
 
-O plugin já traz a skill `memoria`, que orienta os agentes (tech-lead, developer, auditor,
-researcher) sobre quando consultar e o que gravar. Dois ajustes opcionais:
+O plugin já traz a skill `memoria`, que orienta qualquer agente sobre quando consultar e o que
+gravar, por **perfil de uso** (leitor, pesquisador, decisor, executor, revisor). O cortex-lite não
+precisa saber quem o usa: quem integra escolhe o perfil de cada agente.
 
-- **Comportamento obrigatório por agente:** cole os trechos de [`AGENTES.md`](AGENTES.md) no prompt
-  de cada agente.
-- **Revisão em PR:** a cada release, exporte a memória do projeto e versione o markdown:
+- **Subagentes:** liste as ferramentas com o nome completo no campo `tools:` e faça `recall`
+  explícito, porque os hooks só agem na sessão principal. Exemplos em [`AGENTES.md`](AGENTES.md).
+- **Outros plugins:** um plugin que monta agentes (por exemplo, uma squad SDD) pode mapear os
+  perfis automaticamente. Ele depende só da [interface estável](README.md#interface-estável):
+  nomes das ferramentas, `kind` e perfis.
+- **Revisão em PR:** ao fim de cada feature ou release, exporte a memória do projeto e versione o
+  markdown:
   ```powershell
   py C:/ferramentas/cortex-lite/run.py export > docs/MEMORIA.md
   ```
+  No macOS / Linux: `python3 ~/ferramentas/cortex-lite/run.py export > docs/MEMORIA.md`.
   Rode o comando na pasta do projeto: o projeto é detectado pelo repositório git atual.
 
 O banco fica fora do repositório (`~/.cortexlite/memoria.db`), então não há nada a acrescentar

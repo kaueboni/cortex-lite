@@ -1,6 +1,6 @@
 [project]
 name = "cortex-lite"
-version = "0.2.0"
+version = "0.3.0"
 description = "Memória persistente (SQLite + FTS5) para agentes do Claude Code, via MCP e hooks. Sem dependências."
 requires-python = ">=3.10"
 dependencies = []

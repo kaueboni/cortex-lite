@@ -1,65 +1,108 @@
-# Integração com o framework SDD
+# Integrando o cortex-lite a agentes e fluxos
 
-O plugin já traz a skill `memoria`, que ensina qualquer agente a usar a memória. Os trechos abaixo
-são opcionais: cole-os no prompt de cada agente (`.claude/agents/<agente>.md` ou `~/.claude/agents`)
-quando quiser que o comportamento seja obrigatório, e não só sugerido. A regra geral: **quem decide
-grava, quem executa consulta.**
+O cortex-lite não conhece nenhum fluxo, squad ou agente específico. Ele publica três coisas, que são a
+sua **interface estável** (veja [Interface estável](README.md#interface-estável)):
 
-## Regra comum (todos os agentes)
+1. as **ferramentas** MCP, com o efeito de cada uma;
+2. os **tipos de memória** (`kind`);
+3. os **perfis de uso** abaixo.
+
+Quem integra (você, um plugin de squad, um template de projeto) decide **qual agente usa qual perfil**.
+A regra geral: **quem decide grava, quem executa consulta.**
+
+## Ferramentas por efeito
+
+| Ferramenta | Nome completo para listar num subagente | Efeito |
+| --- | --- | --- |
+| `recall` | `mcp__plugin_cortex-lite_memoria__recall` | leitura |
+| `memory_get` | `mcp__plugin_cortex-lite_memoria__memory_get` | leitura |
+| `memory_list` | `mcp__plugin_cortex-lite_memoria__memory_list` | leitura |
+| `memory_save` | `mcp__plugin_cortex-lite_memoria__memory_save` | escrita |
+| `memory_supersede` | `mcp__plugin_cortex-lite_memoria__memory_supersede` | escrita |
+| `memory_delete` | `mcp__plugin_cortex-lite_memoria__memory_delete` | destrutiva: só humano, a pedido |
+
+O nome completo segue o padrão do Claude Code para MCP de plugin:
+`mcp__plugin_<plugin>_<servidor>__<ferramenta>`, com plugin `cortex-lite` e servidor `memoria`
+(definido em `.mcp.json`).
+
+## Perfis de uso
+
+| Perfil | Ferramentas | O que grava |
+| --- | --- | --- |
+| leitor | `recall`, `memory_get`, `memory_list` | nada |
+| pesquisador | + `memory_save` | `achado`, com fonte e data |
+| decisor | + `memory_save`, `memory_supersede` | `decisao` e `pendencia` |
+| executor | + `memory_save` | `licao` que vai se repetir |
+| revisor | + `memory_save`, `memory_supersede` | `licao` de padrões recorrentes |
+
+Nenhum perfil recebe `memory_delete`. A descrição completa de cada perfil está na skill
+[`memoria`](skills/memoria/SKILL.md).
+
+## Subagentes: o que muda
+
+1. **Lista fixa de ferramentas.** Um subagente com o campo `tools:` só enxerga o que está listado.
+   As ferramentas do cortex-lite precisam aparecer com o **nome completo** da tabela acima.
+2. **Os hooks não alcançam subagentes.** O índice do `SessionStart` e o recall automático do
+   `UserPromptSubmit` entram só no contexto da **sessão principal**: o pedido que o orquestrador
+   passa a um subagente não é um prompt do usuário, e o subagente começa com contexto próprio. Por
+   isso, subagentes devem fazer `recall` explicitamente.
+3. **Pré-carregue a skill.** Liste a skill no cabeçalho do agente, em `skills:` (lista YAML), com o
+   nome do plugin: `cortex-lite:memoria`. Isso é mais confiável do que pedir no texto.
+
+### Exemplo: subagente com perfil leitor
 
 ```markdown
-## Memória (cortex-lite)
-- O início da sessão já traz um índice das memórias do projeto. Leia com `memory_get` só as que
-  importam para a tarefa atual.
-- Antes de propor algo, faça `recall` com 2 a 6 palavras-chave do assunto (nomes, siglas, termos
-  técnicos). Se uma memória vigente contradiz sua proposta, siga a memória ou diga explicitamente
-  que propõe substituí-la.
-- Nunca grave segredos, credenciais, dados de clientes, código ou o conteúdo de specs.
+---
+name: meu-agente-leitor
+description: 'Mapeia o projeto antes de uma mudança. Use proactively no início de cada feature.'
+tools: Read, Grep, Glob, mcp__plugin_cortex-lite_memoria__recall, mcp__plugin_cortex-lite_memoria__memory_get, mcp__plugin_cortex-lite_memoria__memory_list
+skills:
+  - cortex-lite:memoria
+---
+Antes de ler o código, faça recall do assunto. Siga o perfil **leitor** da skill memoria:
+consulte, não grave.
 ```
 
-## tech-lead (`/spec`, `/plan`)
+### Exemplo: subagente com perfil decisor
 
 ```markdown
-- Ao fechar uma decisão que outras features precisam respeitar, grave com
-  `memory_save(kind="decisao", agent="tech-lead", title="<assunto>: <escolha>")`.
-  No content, diga o que foi decidido, o porquê e do que se abriu mão.
-- Se a decisão substitui outra, passe `supersedes=["<id antigo>"]`. Não apague a antiga.
-- Ao terminar o /plan, grave o que ficou em aberto com `kind="pendencia"`.
-- Decisão local de uma única feature fica só no design.md, não na memória.
+---
+name: meu-agente-decisor
+description: 'Escreve specs e planos. Use para especificar uma feature.'
+tools: Read, Grep, Glob, Write, Edit, mcp__plugin_cortex-lite_memoria__recall, mcp__plugin_cortex-lite_memoria__memory_get, mcp__plugin_cortex-lite_memoria__memory_list, mcp__plugin_cortex-lite_memoria__memory_save, mcp__plugin_cortex-lite_memoria__memory_supersede
+skills:
+  - cortex-lite:memoria
+---
+Siga o perfil **decisor** da skill memoria: grave decisões que outras partes do projeto devem
+respeitar e, ao fim do planejamento, as pendências.
 ```
 
-## developer (`/build`)
-
-```markdown
-- Antes de implementar uma task, faça `recall` com o nome do módulo e da tecnologia envolvida.
-- Só grave quando descobrir algo que vai morder de novo, com `kind="licao"` e `agent="developer"`.
-  Exemplo: "o mock do cliente HTTP precisa de X senão o teste passa falso".
-- Não grave progresso de tarefas: isso fica no tasks.md e no handoff.
-```
-
-## auditor (`/review`)
-
-```markdown
-- Antes de revisar, faça `recall` com `kind="licao"` e com `kind="decisao"` usando os termos dos
-  arquivos alterados. Verifique se o diff viola alguma decisão vigente ou repete uma lição.
-- Ao encontrar um problema que pode voltar, grave com `kind="licao"` e `agent="auditor"`,
-  descrevendo o padrão do problema e não o caso pontual.
-- Se uma lição antiga já não se aplica, use `memory_supersede`.
-```
-
-## researcher
-
-```markdown
-- Antes de pesquisar, faça `recall` do tema com `kind="achado"`. Se houver um achado recente e
-  suficiente, use-o em vez de pesquisar de novo e diga a data dele.
-- Ao concluir, grave cada achado reutilizável com `kind="achado"` e `agent="researcher"`, incluindo
-  a fonte e a data. Exemplos: limites de API, versões, preços, comportamento de biblioteca.
-- Achado sobre algo que muda rápido: inclua "verificar após <data>" no content.
-- Use `global_scope=true` quando o achado não for específico deste projeto.
-```
+Use aspas simples na `description` se ela tiver `:` seguido de espaço; sem isso, o YAML do
+cabeçalho fica inválido e o agente não carrega.
 
 ## Revisão humana
 
-De tempos em tempos, ou a cada release, rode `py run.py export > docs/MEMORIA.md` e abra um PR.
-Assim a memória continua revisável como o resto do harness. Se algo estiver errado, corrija com
-`memory_save` usando o mesmo `id`, ou marque como substituído.
+De tempos em tempos, ou ao fim de cada feature, exporte a memória do projeto e versione o markdown
+(o projeto é detectado pelo repositório git da pasta atual):
+
+```
+py <pasta do cortex-lite>/run.py export > docs/MEMORIA.md        # Windows
+python3 <pasta do cortex-lite>/run.py export > docs/MEMORIA.md   # macOS / Linux
+```
+
+Se algo estiver errado, corrija com `memory_save` usando o mesmo `id`, ou marque como substituído.
+
+## Exemplo de mapeamento (ilustrativo)
+
+Uma squad SDD com seis agentes poderia mapear assim; o mapeamento é dela, não do cortex-lite:
+
+| Agente da squad | Perfil |
+| --- | --- |
+| discovery, contract-tester | leitor |
+| researcher | pesquisador |
+| tech-lead | decisor |
+| developer | executor |
+| auditor | revisor |
+
+O plugin [minimal-squad](https://github.com/kaueboni/minimal-squad) aplica um mapeamento como esse
+automaticamente quando detecta o cortex-lite.
