@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__cortex-lite__recall",
+      "mcp__cortex-lite__memory_get",
+      "mcp__cortex-lite__memory_list",
+      "mcp__cortex-lite__memory_save"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py C:/ferramentas/cortex-lite/run.py hook session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py C:/ferramentas/cortex-lite/run.py hook recall",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
